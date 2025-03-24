@@ -11,20 +11,18 @@ import (
 	"time"
 )
 
-func ServeMedia(root string) func(w http.ResponseWriter, r *http.Request) {
+func Handler(urlPathPrefix string, rootDir string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serve(w, r, root)
+		path, found := strings.CutPrefix(r.URL.Path, urlPathPrefix)
+		if !found {
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
+		ServeMedia(w, r, filepath.Join(rootDir, path))
 	}
 }
 
-func serve(w http.ResponseWriter, r *http.Request, root string) {
-	path := r.URL.Path
-	if path == "/" {
-		http.Error(w, "No media file specified", http.StatusBadRequest)
-		return
-	}
-	path = filepath.Join(root, path)
-
+func ServeMedia(w http.ResponseWriter, r *http.Request, path string) {
 	fileInfo, err := os.Stat(path)
 	if err != nil || fileInfo.IsDir() {
 		http.Error(w, "Media file not found", http.StatusNotFound)
